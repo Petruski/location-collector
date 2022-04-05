@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Location Collector</string>
     <string name="title_activity_maps">MapsActivity</string>
+    <string name="startStopButton">Start/Stop</string>
+    <string name="settingsButton">Settings</string>
 </resources>
