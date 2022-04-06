@@ -16,6 +16,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,11 +30,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView gpsDataView;
     private LocationManager locationManager;
     private LocationListener locationListener;
+    private Button startStopButton;
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION = 101;
     private final String[] permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
-    boolean isGPSEnabled;
-    boolean permissionsGranted;
+    private boolean isGPSEnabled;
+    private boolean permissionsGranted;
+    private boolean collectingData = false;
 
     private boolean hasPermissions(Context context, String... permissions) {
         if (context != null && permissions != null) {
@@ -53,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(settingsIntent);
     }
 
-    @SuppressLint("MissingPermission")
+    @SuppressLint({"MissingPermission", "SetTextI18n"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
         // get views
         gpsDataView = findViewById(R.id.textViewGPSData);
+        startStopButton = findViewById(R.id.startStopButton);
 
         // init data members
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -95,23 +99,33 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(permissions, MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION);
             }
         }
-        if (hasPermissions(this, permissions)) {
-            if (isGPSEnabled){
+
+        startStopButton.setOnClickListener(listener -> {
+            collectingData = !collectingData;
+            if (collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+                startStopButton.setText("Stop");
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
-            } else {
-                Toast.makeText(MainActivity.this, "Locations not allowed", Toast.LENGTH_SHORT).show();
+            }
+            if (!collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+                startStopButton.setText("Start");
+                locationManager.removeUpdates(locationListener);
+            }
+            if (!isGPSEnabled) {
+                collectingData = !collectingData;
                 enableLocationServices();
             }
-        }
+            if (!hasPermissions(this, permissions)) {
+                collectingData = !collectingData;
+                Toast.makeText(MainActivity.this, "Location permissions not enabled, please enable them", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @SuppressLint("MissingPermission")
     @Override
     protected void onResume() {
         super.onResume();
-        if (isGPSEnabled && permissionsGranted) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
-        }
+        isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
     public void requestPermissions(String permission, int requestCode) {
@@ -136,9 +150,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(MainActivity.this, "Permission granted", Toast.LENGTH_SHORT).show();
             permissionsGranted = true;
-            if (isGPSEnabled) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
-            } else {
+            if (!isGPSEnabled) {
                 enableLocationServices();
             }
         }
