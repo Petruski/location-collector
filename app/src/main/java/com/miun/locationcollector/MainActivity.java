@@ -7,6 +7,8 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,6 +18,9 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.ContextMenu;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -65,6 +70,9 @@ public class MainActivity extends AppCompatActivity {
         // get views
         gpsDataView = findViewById(R.id.textViewGPSData);
         startStopButton = findViewById(R.id.startStopButton);
+
+        // register gpsDataView to context menu to be able to copy text
+        registerForContextMenu(gpsDataView);
 
         // init data members
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -119,6 +127,21 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Location permissions not enabled, please enable them", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+
+        if (v.getId() == R.id.textViewGPSData) {
+            menu.add(0, v.getId(), 0, "Copy");
+            TextView textView = (TextView) v;
+            ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            ClipData clipData = ClipData.newPlainText("text", textView.getText());
+            if (manager != null) {
+                manager.setPrimaryClip(clipData);
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
