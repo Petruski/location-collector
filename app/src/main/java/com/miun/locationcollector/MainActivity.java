@@ -8,11 +8,14 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,9 +30,30 @@ public class MainActivity extends AppCompatActivity {
     private LocationManager locationManager;
     private LocationListener locationListener;
 
-    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION = 100;
+    private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION = 101;
     private final String[] permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+    boolean isGPSEnabled;
+    boolean permissionsGranted;
 
+    private boolean hasPermissions(Context context, String... permissions) {
+        if (context != null && permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+                    permissionsGranted = false;
+                    return false;
+                }
+            }
+        }
+        permissionsGranted = true;
+        return true;
+    }
+
+    private void enableLocationServices() {
+        Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(settingsIntent);
+    }
+
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,31 +64,38 @@ public class MainActivity extends AppCompatActivity {
 
         // init data members
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         locationListener = new LocationListener() {
+            @SuppressLint("MissingPermission")
             @Override
             public void onLocationChanged(@NonNull Location location) {
-
-
+                double latitude;
+                double longitude;
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
+                gpsDataView.append(latitude + " " + longitude + "\n");
             }
         };
+        if (!hasPermissions(this, permissions)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(permissions, MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION);
+            }
+        }
+        if (hasPermissions(this, permissions)) {
+            if (isGPSEnabled){
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
+            } else {
+                Toast.makeText(MainActivity.this, "Locations not allowed", Toast.LENGTH_SHORT).show();
+                enableLocationServices();
+            }
+        }
+    }
 
-        ActivityCompat.requestPermissions(this, permissions, MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION);
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-
-            locationListener = new LocationListener() {
-                @SuppressLint("MissingPermission")
-                @Override
-                public void onLocationChanged(@NonNull Location location) {
-
-                    location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    double latitude;
-                    double longitude;
-
-                    latitude = location.getLatitude();
-                    longitude = location.getLongitude();
-                    gpsDataView.append(latitude + " " + longitude + "\n");
-                }
-            };
+    @SuppressLint("MissingPermission")
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isGPSEnabled && permissionsGranted) {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
         }
     }
@@ -79,15 +110,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("MissingPermission")
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
             // permission denied
             Toast.makeText(MainActivity.this, "Permission denied", Toast.LENGTH_SHORT).show();
+            permissionsGranted = false;
         } else {
             Toast.makeText(MainActivity.this, "Permission granted", Toast.LENGTH_SHORT).show();
+            permissionsGranted = true;
+            if (isGPSEnabled) {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
+            } else {
+                enableLocationServices();
+            }
         }
     }
 }
