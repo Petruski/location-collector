@@ -6,6 +6,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -16,6 +17,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
+
+    /* Settings */
+    private static final int MIN_TIME = 10;
+    private static final int MIN_DISTANCE = 0;
+    /* ************************************** */
 
     private TextView gpsDataView;
     private LocationManager locationManager;
@@ -39,33 +45,30 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLocationChanged(@NonNull Location location) {
 
+
             }
         };
 
-        /*
-        The following code gets and writes location data.
-        If it works, move code to a onclick handler for a
-        start button.
-         */
         requestPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
         requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
 
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-            for (int i = 0; i < 10; ++i) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, locationListener);
-                if (locationManager != null) {
-                    Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            locationListener = new LocationListener() {
+                @SuppressLint("MissingPermission")
+                @Override
+                public void onLocationChanged(@NonNull Location location) {
+
+                    location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                     double latitude;
                     double longitude;
 
-                    if (location != null) {
-                        latitude = location.getLatitude();
-                        longitude = location.getLongitude();
-                        gpsDataView.append(Double.toString(latitude) + " " + Double.toString(longitude) + "\n");
-                    }
+                    latitude = location.getLatitude();
+                    longitude = location.getLongitude();
+                    gpsDataView.append(Double.toString(latitude) + " " + Double.toString(longitude) + "\n");
                 }
-            }
+            };
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
         }
     }
 
