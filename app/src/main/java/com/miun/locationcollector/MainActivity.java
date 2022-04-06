@@ -75,6 +75,20 @@ public class MainActivity extends AppCompatActivity {
                 longitude = location.getLongitude();
                 gpsDataView.append(latitude + " " + longitude + "\n");
             }
+            @Override
+            public void onProviderEnabled(@NonNull String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(@NonNull String provider) {
+
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
         };
         if (!hasPermissions(this, permissions)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
