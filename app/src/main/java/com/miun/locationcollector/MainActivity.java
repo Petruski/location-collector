@@ -1,6 +1,7 @@
 package com.miun.locationcollector;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -24,6 +25,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.security.Timestamp;
+import java.time.Instant;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -78,14 +82,15 @@ public class MainActivity extends AppCompatActivity {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         locationListener = new LocationListener() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
             @SuppressLint("MissingPermission")
             @Override
             public void onLocationChanged(@NonNull Location location) {
-                double latitude;
-                double longitude;
-                latitude = location.getLatitude();
-                longitude = location.getLongitude();
-                gpsDataView.append(latitude + " " + longitude + "\n");
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+                long timestamp = location.getTime();
+                double accuracy = location.getAccuracy();
+                gpsDataView.append(timestamp + "," + accuracy + "," + latitude + "," + longitude + "\n");
             }
             @Override
             public void onProviderEnabled(@NonNull String provider) {
@@ -149,6 +154,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if (isGPSEnabled && collectingData && permissionsGranted) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
+        }
+    }
+
+    protected void onPause() {
+        super.onPause();
+        locationManager.removeUpdates(locationListener);
     }
 
     public void requestPermissions(String permission, int requestCode) {
