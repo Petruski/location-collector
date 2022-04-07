@@ -47,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean permissionsGranted;
     private boolean collectingData = false;
 
+    private String gpsData;
+
     private boolean hasPermissions(Context context, String... permissions) {
         if (context != null && permissions != null) {
             for (String permission : permissions) {
@@ -90,7 +92,10 @@ public class MainActivity extends AppCompatActivity {
                 double longitude = location.getLongitude();
                 long timestamp = location.getTime();
                 double accuracy = location.getAccuracy();
-                gpsDataView.append(timestamp + "," + accuracy + "," + latitude + "," + longitude + "\n");
+
+                String data = timestamp + "," + accuracy + "," + latitude + "," + longitude + "\n";
+                gpsDataView.append(data);
+                gpsData += data;
             }
             @Override
             public void onProviderEnabled(@NonNull String provider) {
@@ -116,12 +121,33 @@ public class MainActivity extends AppCompatActivity {
         startStopButton.setOnClickListener(listener -> {
             collectingData = !collectingData;
             if (collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+
+                // reset data
+                gpsDataView.setText("");
+                gpsData = "";
+
+                // switch start/stop buttons
                 startStopButton.setText("Stop");
+
+                // start location updates
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
             }
             if (!collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+
+                // switch start/stop buttons
                 startStopButton.setText("Start");
+
+                // stop location updates
                 locationManager.removeUpdates(locationListener);
+
+                // share dialog to send gps data
+                Intent dataIntent = new Intent();
+                dataIntent.setAction(Intent.ACTION_SEND);
+                dataIntent.putExtra(Intent.EXTRA_TEXT, gpsData);
+                dataIntent.setType("text/plain");
+
+                Intent shareIntent = Intent.createChooser(dataIntent, null);
+                startActivity(shareIntent);
             }
             if (!isGPSEnabled) {
                 collectingData = !collectingData;
