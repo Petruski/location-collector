@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private LocationManager locationManager;
     private LocationListener locationListener;
     private Button startStopButton;
+    private Button shareButton;
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION = 101;
     private final String[] permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
@@ -76,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         // get views
         gpsDataView = findViewById(R.id.textViewGPSData);
         startStopButton = findViewById(R.id.startStopButton);
+        shareButton = findViewById(R.id.shareButton);
 
         // register gpsDataView to context menu to be able to copy text
         registerForContextMenu(gpsDataView);
@@ -92,8 +94,9 @@ public class MainActivity extends AppCompatActivity {
                 double longitude = location.getLongitude();
                 long timestamp = location.getTime();
                 double accuracy = location.getAccuracy();
+                String provider = location.getProvider();
 
-                String data = timestamp + "," + accuracy + "," + latitude + "," + longitude + "\n";
+                String data = timestamp + "," + provider + "," + accuracy + "," + latitude + "," + longitude + "\n";
                 gpsDataView.append(data);
                 gpsData += data;
             }
@@ -139,15 +142,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // stop location updates
                 locationManager.removeUpdates(locationListener);
-
-                // share dialog to send gps data
-                Intent dataIntent = new Intent();
-                dataIntent.setAction(Intent.ACTION_SEND);
-                dataIntent.putExtra(Intent.EXTRA_TEXT, gpsData);
-                dataIntent.setType("text/plain");
-
-                Intent shareIntent = Intent.createChooser(dataIntent, null);
-                startActivity(shareIntent);
             }
             if (!isGPSEnabled) {
                 collectingData = !collectingData;
@@ -157,6 +151,17 @@ public class MainActivity extends AppCompatActivity {
                 collectingData = !collectingData;
                 Toast.makeText(MainActivity.this, "Location permissions not enabled, please enable them", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        shareButton.setOnClickListener(listener -> {
+            // share dialog to send gps data
+            Intent dataIntent = new Intent();
+            dataIntent.setAction(Intent.ACTION_SEND);
+            dataIntent.putExtra(Intent.EXTRA_TEXT, gpsData);
+            dataIntent.setType("text/plain");
+
+            Intent shareIntent = Intent.createChooser(dataIntent, null);
+            startActivity(shareIntent);
         });
     }
 
