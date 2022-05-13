@@ -40,12 +40,15 @@ public class MainActivity extends AppCompatActivity {
     private LocationManager locationManager;
     private LocationListener locationListener;
     private Button startStopButton;
+    private Button shareButton;
 
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_AND_COARSE_LOCATION = 101;
     private final String[] permissions = new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
     private boolean isGPSEnabled;
     private boolean permissionsGranted;
     private boolean collectingData = false;
+
+    private String gpsData;
 
     private boolean hasPermissions(Context context, String... permissions) {
         if (context != null && permissions != null) {
@@ -74,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         // get views
         gpsDataView = findViewById(R.id.textViewGPSData);
         startStopButton = findViewById(R.id.startStopButton);
+        shareButton = findViewById(R.id.shareButton);
 
         // register gpsDataView to context menu to be able to copy text
         registerForContextMenu(gpsDataView);
@@ -90,7 +94,11 @@ public class MainActivity extends AppCompatActivity {
                 double longitude = location.getLongitude();
                 long timestamp = location.getTime();
                 double accuracy = location.getAccuracy();
-                gpsDataView.append(timestamp + "," + accuracy + "," + latitude + "," + longitude + "\n");
+                String provider = location.getProvider();
+
+                String data = timestamp + "," + provider + "," + accuracy + "," + latitude + "," + longitude + "\n";
+                gpsDataView.append(data);
+                gpsData += data;
             }
             @Override
             public void onProviderEnabled(@NonNull String provider) {
@@ -116,11 +124,23 @@ public class MainActivity extends AppCompatActivity {
         startStopButton.setOnClickListener(listener -> {
             collectingData = !collectingData;
             if (collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+
+                // reset data
+                gpsDataView.setText("");
+                gpsData = "";
+
+                // switch start/stop buttons
                 startStopButton.setText("Stop");
+
+                // start location updates
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME, MIN_DISTANCE, locationListener);
             }
             if (!collectingData && hasPermissions(this, permissions) && isGPSEnabled) {
+
+                // switch start/stop buttons
                 startStopButton.setText("Start");
+
+                // stop location updates
                 locationManager.removeUpdates(locationListener);
             }
             if (!isGPSEnabled) {
@@ -131,6 +151,17 @@ public class MainActivity extends AppCompatActivity {
                 collectingData = !collectingData;
                 Toast.makeText(MainActivity.this, "Location permissions not enabled, please enable them", Toast.LENGTH_SHORT).show();
             }
+        });
+
+        shareButton.setOnClickListener(listener -> {
+            // share dialog to send gps data
+            Intent dataIntent = new Intent();
+            dataIntent.setAction(Intent.ACTION_SEND);
+            dataIntent.putExtra(Intent.EXTRA_TEXT, gpsData);
+            dataIntent.setType("text/plain");
+
+            Intent shareIntent = Intent.createChooser(dataIntent, null);
+            startActivity(shareIntent);
         });
     }
 
